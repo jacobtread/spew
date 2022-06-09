@@ -1,6 +1,8 @@
 #![feature(iter_advance_by)]
 
 
+mod types;
+
 struct Parser;
 
 struct ParserContext<'a> {
