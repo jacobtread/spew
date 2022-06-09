@@ -1,9 +1,5 @@
 #![feature(iter_advance_by)]
 
-use std::iter::TakeWhile;
-use std::str::Chars;
-
-use crate::Token::Ident;
 
 struct Parser;
 
@@ -31,13 +27,8 @@ impl ParserContext<'_> {
         self.tokens.push(token)
     }
 
-    fn step_back(&mut self) -> ParseResult<()> {
+    fn step_back(&mut self) {
         self.offset -= 1;
-        if self.offset < 0 {
-            Err(ParserError::Fail(String::from("Tried to step back too far")))
-        } else {
-            Ok(())
-        }
     }
 
     fn next_char(&mut self) -> Option<char> {
@@ -45,10 +36,11 @@ impl ParserContext<'_> {
             let char = *self.chars.get(self.offset)?;
             self.offset += 1;
             if char == '\n' {
-                self.line += 0;
+                self.line += 1;
                 self.line_offset = 0
             } else if char == '\r' {
-                return self.next_char()
+                self.line_offset = 0;
+                return self.next_char();
             } else {
                 self.line_offset += 1;
             }
@@ -66,41 +58,39 @@ impl ParserContext<'_> {
         while let Some(char) = self.next_char() {
             let result = predicate(&char);
             if !result {
+                self.offset -= 1;
                 break;
             }
             out.push(char);
         }
         return out;
     }
+    fn skip_while<P>(&mut self, mut predicate: P)
+        where
+            Self: Sized,
+            P: FnMut(&char) -> bool,
+    {
+        while let Some(char) = self.next_char() {
+            let result = predicate(&char);
+            if !result {
+                self.offset -= 1;
+                break;
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
-enum OperationType {
-    Add,
-    Subtract,
-    GreaterThan,
-    LessThan,
-    GreaterThanEq,
-    LessThanEq,
-}
-
-#[derive(Debug)]
-enum ExpressionType {
-    Assignment,
-    OperationAssign(OperationType),
-    Operation(OperationType),
-}
-
-#[derive(Debug)]
+#[allow(dead_code)]
 enum Token {
-    Whitespace,
     Comment(String),
     Ident(String),
     Block(Vec<Token>),
-    Expression(Box<Token>, Box<Token>, ExpressionType),
+    Expression(Box<Token>, Box<Token>),
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum ParserError {
     UnexpectedToken(char, String),
     Expected(String),
@@ -118,9 +108,27 @@ impl Parser {
                 context.push_token(Token::Comment(comment_text));
                 Ok(context)
             } else if char == '*' { // Multi-line comment
-                todo!("Parse comment");
+                let mut comment_text = String::new();
+                while let Some(first_char) = context.next_char() {
+                    if first_char == '*' {
+                        if let Some(second_char) = context.next_char() {
+                            if second_char == '/' {
+                                break;
+                            } else {
+                                comment_text.push(second_char)
+                            }
+                        } else {
+                            comment_text.push(first_char)
+                        }
+                    } else {
+                        comment_text.push(first_char)
+                    }
+                }
+                println!("{}", comment_text);
+                context.push_token(Token::Comment(comment_text));
                 Ok(context)
             } else {
+                println!("{} {}", context.line, context.line_offset);
                 Err(ParserError::UnexpectedToken(char, String::from("Expected '/' for line comment or '*' for multiline comment")))
             }
         } else {
@@ -129,10 +137,10 @@ impl Parser {
     }
 
     fn consume_ident<'a>(context: &'a mut ParserContext<'a>) -> ParseResult<&'a mut ParserContext<'a>> {
-        context.step_back()?;
+        context.step_back();
         let ident = context
             .take_while(|char| char.is_alphabetic() || char.is_alphanumeric());
-        context.push_token(Ident(ident));
+        context.push_token(Token::Ident(ident));
         Ok(context)
     }
 
@@ -142,13 +150,10 @@ impl Parser {
 
         let mut context = &mut ParserContext::new(&mut chars, &mut tokens);
 
-        'parse_loop: while let Some(next_char) = context.next_char() {
+        while let Some(next_char) = context.next_char() {
             if next_char.is_whitespace() { // Consuming whitespace
-                context.push_token(Token::Whitespace);  // Push whitespace token
-                let _ = context.take_while(|char| char.is_whitespace());
-            }
-
-            if next_char == '/' { // Consume comments
+                context.skip_while(|char| char.is_whitespace());
+            } else if next_char == '/' { // Consume comments
                 context = Parser::consume_comment(context)?;
             } else if next_char.is_alphabetic() { // Consume idents
                 context = Parser::consume_ident(context)?;
