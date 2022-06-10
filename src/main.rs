@@ -98,6 +98,7 @@ impl From<&String> for KeywordType {
     }
 }
 
+static DELIMITERS: [char; 6] = ['{', '}', '(', ')', '[', ']'];
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -107,6 +108,7 @@ enum Token {
     Ident(String),
     Block(Vec<Token>),
     Expression(Box<Token>, Box<Token>),
+    Delimiter(char),
 }
 
 #[derive(Debug)]
@@ -181,6 +183,8 @@ impl Parser {
                 context = Parser::consume_comment(context)?;
             } else if next_char.is_alphabetic() { // Consume idents
                 context = Parser::consume_ident(context)?;
+            } else if DELIMITERS.contains(&next_char) {
+                context.push_token(Token::Delimiter(next_char))
             }
         }
         return Ok(tokens);
