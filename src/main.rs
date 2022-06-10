@@ -100,6 +100,41 @@ impl From<&String> for KeywordType {
 
 static DELIMITERS: [char; 6] = ['{', '}', '(', ')', '[', ']'];
 
+enum PunctuationType {
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Percent,
+    Caret,
+    Not,
+    And,
+    Or,
+    AndAnd,
+    OrOr,
+    Shl,
+    Shr,
+    PlusEq,
+    MinusEq,
+    StarEq,
+    SlashEq,
+    PercentEq,
+    CaretEq,
+    AndEq,
+    OrEq,
+    ShlEq,
+    ShrEq,
+    Eq,
+    EqEq,
+    Ne,
+    Gt,
+    Lt,
+    Ge,
+    Le,
+    RArrow,
+    FatArrow
+}
+
 #[derive(Debug)]
 #[allow(dead_code)]
 enum Token {
