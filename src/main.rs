@@ -1,5 +1,6 @@
 #![feature(iter_advance_by)]
 
+extern crate core;
 
 mod types;
 
@@ -83,9 +84,26 @@ impl ParserContext<'_> {
 }
 
 #[derive(Debug)]
+enum KeywordType {
+    Function,
+    Unknown,
+}
+
+impl From<&String> for KeywordType {
+    fn from(value: &String) -> Self {
+        return match value.as_ref() {
+            "fun" => KeywordType::Function,
+            _ => KeywordType::Unknown
+        };
+    }
+}
+
+
+#[derive(Debug)]
 #[allow(dead_code)]
 enum Token {
     Comment(String),
+    Keyword(KeywordType),
     Ident(String),
     Block(Vec<Token>),
     Expression(Box<Token>, Box<Token>),
@@ -142,7 +160,11 @@ impl Parser {
         context.step_back();
         let ident = context
             .take_while(|char| char.is_alphabetic() || char.is_alphanumeric());
-        context.push_token(Token::Ident(ident));
+        let keyword = KeywordType::from(&ident);
+        match keyword {
+            KeywordType::Unknown => context.push_token(Token::Ident(ident)),
+            other => context.push_token(Token::Keyword(other)),
+        }
         Ok(context)
     }
 

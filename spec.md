@@ -19,11 +19,17 @@ bool
 null
 ndef
 
-struct Example(
-example: number,
-text: string
+trait 
+
+class Example(
+    let key: str,
 ) {
-test: string
+
+    init {
+
+    }
+
+    test: str
 
     fun my_function(key: str, my_func: str) -> string {
         
@@ -53,8 +59,4 @@ type name = other
 import * from "other"
 import * as other from "other"
 import {testFunction, Other as Test} from "other"
-
-fun myFunction(text: string, hello: number) {
-
-}
 
