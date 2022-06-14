@@ -1,6 +1,6 @@
 #![feature(iter_advance_by)]
 
-use std::{process::id, str::Chars};
+use std::{process::id, str::Chars, thread::__FastLocalKeyInner};
 
 mod types;
 
@@ -109,58 +109,68 @@ enum KeywordType {
     Unknown,
 }
 
-impl From<&String> for KeywordType {
-    fn from(value: &String) -> Self {
+#[derive(Debug)]
+#[allow(dead_code)]
+enum Symbol {
+    OpenCurly,
+    CloseCurly,
+    OpenParen,
+    CloseParen,
+    OpenSquare,
+    CloseSquare,
+    Plus,
+    Minus,
+    Left,
+    Right,
+    Underscore,
+    Exclamation,
+    Equals,
+    And,
+    Pipe,
+    Period,
+    Multiply,
+    Percent,
+    Divide,
+}
+
+impl KeywordType {
+    fn from(value: &String) -> Option<KeywordType> {
         return match value.as_ref() {
-            "fun" => KeywordType::Function,
-            "let" => KeywordType::Let,
-            "mut" => KeywordType::LetMutable,
-            _ => KeywordType::Unknown,
+            "fun" => Some(KeywordType::Function),
+            "let" => Some(KeywordType::Let),
+            "mut" => Some(KeywordType::LetMutable),
+            _ => None,
         };
     }
 }
 
 static DELIMITERS: [char; 6] = ['{', '}', '(', ')', '[', ']'];
 
-#[derive(Debug)]
-#[allow(dead_code)]
-enum Symbol {
-    // {
-    OpenCurly,
-    // }
-    CloseCurly,
-    // (
-    OpenParen,
-    // )
-    CloseParen,
-    // [
-    OpenSquare,
-    // ]
-    CloseSquare,
-    // +
-    Plus,
-    // -
-    Minus,
-    // <
-    Left,
-    // >
-    Right,
-    // _
-    Underscore,
-    // !
-    Exclamation,
-    // =
-    Equals,
-    // &
-    And,
-    // |
-    Pipe,
-    // .
-    Period,
-    // *
-    Multiply,
-    // %
-    Percent,
+impl Symbol {
+    fn from(value: char) -> Option<Symbol> {
+        return match value {
+            '{' => Some(Symbol::OpenCurly),
+            '}' => Some(Symbol::CloseCurly),
+            '(' => Some(Symbol::OpenParen),
+            ')' => Some(Symbol::CloseParen),
+            '[' => Some(Symbol::OpenSquare),
+            ']' => Some(Symbol::CloseSquare),
+            '+' => Some(Symbol::Plus),
+            '-' => Some(Symbol::Minus),
+            '<' => Some(Symbol::Left),
+            '>' => Some(Symbol::Right),
+            '_' => Some(Symbol::Underscore),
+            '!' => Some(Symbol::Exclamation),
+            '=' => Some(Symbol::Equals),
+            '&' => Some(Symbol::And),
+            '|' => Some(Symbol::Pipe),
+            '.' => Some(Symbol::Period),
+            '*' => Some(Symbol::Multiply),
+            '%' => Some(Symbol::Percent),
+            '/' => Some(Symbol::Divide),
+            _ => None,
+        };
+    }
 }
 
 #[derive(Debug)]
@@ -246,20 +256,35 @@ impl Parser {
             .take_while(|char| char.is_alphabetic() || char.is_alphanumeric() || char == &'_');
         let keyword = KeywordType::from(&ident);
 
-        match keyword {
-            KeywordType::Unknown => {
-                if ident == "true" || ident == "false" {
-                    let is_true = ident == "true";
-                    context.push_token(Token::Literal(Literal::Boolean(is_true)))
-                } else {
-                    context.push_token(Token::Ident(ident));
-                }
-            }
-            other => {
-                context.push_token(Token::Keyword(other));
-            }
+        if let Some(keyword) = KeywordType::from(&ident) {
+            context.push_token(Token::Keyword(keyword));
+        } else if ident == "true" || ident == "false" {
+            let is_true = ident == "true";
+            context.push_token(Token::Literal(Literal::Boolean(is_true)))
+        } else {
+            context.push_token(Token::Ident(ident));
         }
 
+        Ok(context)
+    }
+
+    fn consume_number_literal<'a>(
+        context: &'a mut ParserContext<'a>,
+    ) -> ParseResult<&'a mut ParserContext<'a>> {
+        context.step_back();
+        let mut out = String::new();
+        let mut decimal = false;
+        while let Some(char) = context.next_char() {
+            if char.is_numeric() {
+                out.push(char);
+            } else if char == '.' && !decimal {
+                decimal = true;
+            } else {
+                context.step_back();
+                break;
+            }
+        }
+        context.push_token(Token::Literal(Literal::Number(out)));
         Ok(context)
     }
 
@@ -297,9 +322,12 @@ impl Parser {
                 // Consume idents
                 context = Parser::consume_ident(context)?;
             } else if DELIMITERS.contains(&next_char) {
+                // Consume delimiters
                 context.push_token(Token::Delimiter(next_char))
             } else if next_char == '"' {
                 context = Parser::consume_string_literal(context)?;
+            } else if next_char.is_numeric() {
+                context = Parser::consume_number_literal(context)?;
             }
         }
         return Ok(tokens);
