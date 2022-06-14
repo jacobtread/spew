@@ -88,7 +88,6 @@ impl ParserContext<'_> {
 enum KeywordType {
     Constant,
     Let,
-    LetMutable,
     Function,
     Unknown,
     Static,
@@ -103,7 +102,6 @@ impl KeywordType {
             "const" => Some(KeywordType::Constant),
             "fun" => Some(KeywordType::Function),
             "let" => Some(KeywordType::Let),
-            "mut" => Some(KeywordType::LetMutable),
             "impl" => Some(KeywordType::Implementation),
             "struct" => Some(KeywordType::Struct),
             v => {
@@ -124,12 +122,14 @@ enum Modifier {
     Static,
     Inline,
     Compile,
+    Mutable,
 }
 
 impl Modifier {
     fn from(value: &str) -> Option<Modifier> {
         return match value.as_ref() {
             "pub" => Some(Modifier::Public),
+            "mut" => Some(Modifier::Mutable),
             "static" => Some(Modifier::Static),
             "inline" => Some(Modifier::Inline),
             "compile" => Some(Modifier::Compile),
