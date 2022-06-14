@@ -1,6 +1,6 @@
 #![feature(iter_advance_by)]
 
-extern crate core;
+use std::{process::id, str::Chars};
 
 mod types;
 
@@ -81,10 +81,30 @@ impl ParserContext<'_> {
             }
         }
     }
+
+    fn try_consume(&mut self, text: &str) -> bool {
+        let start_offset = self.offset;
+        let mut chars = text.chars();
+        self.offset -= 1;
+        let result = chars.all(|char_at| {
+            return if let Some(next_char) = self.next_char() {
+                next_char == char_at
+            } else {
+                false
+            };
+        });
+        if !result {
+            self.offset = start_offset
+        }
+        return result;
+    }
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum KeywordType {
+    Let,
+    LetMutable,
     Function,
     Unknown,
 }
@@ -93,6 +113,8 @@ impl From<&String> for KeywordType {
     fn from(value: &String) -> Self {
         return match value.as_ref() {
             "fun" => KeywordType::Function,
+            "let" => KeywordType::Let,
+            "mut" => KeywordType::LetMutable,
             _ => KeywordType::Unknown,
         };
     }
@@ -223,10 +245,21 @@ impl Parser {
         let ident = context
             .take_while(|char| char.is_alphabetic() || char.is_alphanumeric() || char == &'_');
         let keyword = KeywordType::from(&ident);
+
         match keyword {
-            KeywordType::Unknown => context.push_token(Token::Ident(ident)),
-            other => context.push_token(Token::Keyword(other)),
+            KeywordType::Unknown => {
+                if ident == "true" || ident == "false" {
+                    let is_true = ident == "true";
+                    context.push_token(Token::Literal(Literal::Boolean(is_true)))
+                } else {
+                    context.push_token(Token::Ident(ident));
+                }
+            }
+            other => {
+                context.push_token(Token::Keyword(other));
+            }
         }
+
         Ok(context)
     }
 
@@ -246,7 +279,7 @@ impl Parser {
         context.push_token(Token::Literal(Literal::String(str)));
         Ok(context)
     }
-    
+
     fn parse(text: &str) -> ParseResult<Vec<Token>> {
         let mut tokens = Vec::new();
         let mut chars: Vec<char> = text.chars().collect();
