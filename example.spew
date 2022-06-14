@@ -11,5 +11,6 @@
 This is not a comment
 
 fun test() {
-
+  let this_is_a_string = "Test string yes yes"
+  let this_is_a_broken_str = "Test string \" escaped "
 }

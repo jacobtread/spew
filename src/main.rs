@@ -138,7 +138,7 @@ enum Symbol {
     // *
     Multiply,
     // %
-    Percent
+    Percent,
 }
 
 #[derive(Debug)]
@@ -146,6 +146,7 @@ enum Symbol {
 enum Literal {
     String(String),
     Number(String),
+    Boolean(bool),
 }
 
 #[derive(Debug)]
@@ -158,7 +159,7 @@ enum Token {
     Expression(Box<Token>, Box<Token>),
     Delimiter(char),
     Symbol(Symbol),
-    Literal,
+    Literal(Literal),
 }
 
 #[derive(Debug)]
@@ -167,6 +168,7 @@ enum ParserError {
     UnexpectedToken(char, String),
     Expected(String),
     Fail(String),
+    IncompleteLiteral(String, String),
 }
 
 type ParseResult<T> = Result<T, ParserError>;
@@ -218,7 +220,8 @@ impl Parser {
         context: &'a mut ParserContext<'a>,
     ) -> ParseResult<&'a mut ParserContext<'a>> {
         context.step_back();
-        let ident = context.take_while(|char| char.is_alphabetic() || char.is_alphanumeric());
+        let ident = context
+            .take_while(|char| char.is_alphabetic() || char.is_alphanumeric() || char == &'_');
         let keyword = KeywordType::from(&ident);
         match keyword {
             KeywordType::Unknown => context.push_token(Token::Ident(ident)),
@@ -227,6 +230,23 @@ impl Parser {
         Ok(context)
     }
 
+    fn consume_string_literal<'a>(
+        context: &'a mut ParserContext<'a>,
+    ) -> ParseResult<&'a mut ParserContext<'a>> {
+        let mut str = String::new();
+        let mut last_char: char = '"';
+        while let Some(char) = context.next_char() {
+            if char == '"' && last_char != '\\' {
+                break;
+            } else {
+                str.push(char);
+                last_char = char;
+            }
+        }
+        context.push_token(Token::Literal(Literal::String(str)));
+        Ok(context)
+    }
+    
     fn parse(text: &str) -> ParseResult<Vec<Token>> {
         let mut tokens = Vec::new();
         let mut chars: Vec<char> = text.chars().collect();
@@ -245,6 +265,8 @@ impl Parser {
                 context = Parser::consume_ident(context)?;
             } else if DELIMITERS.contains(&next_char) {
                 context.push_token(Token::Delimiter(next_char))
+            } else if next_char == '"' {
+                context = Parser::consume_string_literal(context)?;
             }
         }
         return Ok(tokens);
