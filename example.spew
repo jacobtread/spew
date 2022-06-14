@@ -8,9 +8,16 @@
 
 */
 
-compile fun test(a: str, b: str) {
+const my_variable = test('a', 'b')
+
+compile fun test(a: str, b: str) -> str {
   let mut this_is_a_string = "Test string yes yes"
   let this_is_a_broken_str = "Test string \" escaped "
-  let boolean_test = true
+  let boolean_test: bool = true
   let boolean_test_2 = false
+}
+
+
+let test = fun (a, b) {
+
 }

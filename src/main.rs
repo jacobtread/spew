@@ -248,11 +248,9 @@ impl Parser {
                         comment_text.push(first_char)
                     }
                 }
-                println!("{}", comment_text);
                 context.push_token(Token::Comment(comment_text));
                 Ok(context)
             } else {
-                println!("{} {}", context.line, context.line_offset);
                 Err(ParserError::UnexpectedToken(
                     char,
                     String::from("Expected '/' for line comment or '*' for multiline comment"),
