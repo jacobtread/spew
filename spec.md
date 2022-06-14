@@ -31,7 +31,7 @@ class Example(
 
     test: str
 
-    fun my_function(key: str, my_func: str) -> string {
+    compile fun my_function(key: str, my_func: str) -> string {
         
     }
 

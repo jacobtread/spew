@@ -1,3 +1,4 @@
+
 mod types;
 
 struct Parser;
@@ -83,18 +84,49 @@ impl ParserContext<'_> {
 #[derive(Debug)]
 #[allow(dead_code)]
 enum KeywordType {
+    Constant,
     Let,
     LetMutable,
     Function,
     Unknown,
+    Static,
+    Modifier(Modifier),
 }
 
 impl KeywordType {
     fn from(value: &String) -> Option<KeywordType> {
         return match value.as_ref() {
+            "const" => Some(KeywordType::Constant),
             "fun" => Some(KeywordType::Function),
             "let" => Some(KeywordType::Let),
             "mut" => Some(KeywordType::LetMutable),
+            v => {
+                return if let Some(modifier) = Modifier::from(v) {
+                    Some(KeywordType::Modifier(modifier))
+                } else {
+                    None
+                }
+            }
+        };
+    }
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+enum Modifier {
+    Public,
+    Static,
+    Inline,
+    Compile,
+}
+
+impl Modifier {
+    fn from(value: &str) -> Option<Modifier> {
+        return match value.as_ref() {
+            "pub" => Some(Modifier::Public),
+            "static" => Some(Modifier::Static),
+            "inline" => Some(Modifier::Inline),
+            "compile" => Some(Modifier::Compile),
             _ => None,
         };
     }
@@ -249,7 +281,6 @@ impl Parser {
         } else {
             context.push_token(Token::Ident(ident));
         }
-
         Ok(context)
     }
 
