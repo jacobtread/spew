@@ -105,6 +105,17 @@ enum KeywordType {
     Unknown,
 }
 
+impl KeywordType {
+    fn from(value: &String) -> Option<KeywordType> {
+        return match value.as_ref() {
+            "fun" => Some(KeywordType::Function),
+            "let" => Some(KeywordType::Let),
+            "mut" => Some(KeywordType::LetMutable),
+            _ => None,
+        };
+    }
+}
+
 #[derive(Debug)]
 #[allow(dead_code)]
 enum Symbol {
@@ -127,17 +138,8 @@ enum Symbol {
     Multiply,
     Percent,
     Divide,
-}
-
-impl KeywordType {
-    fn from(value: &String) -> Option<KeywordType> {
-        return match value.as_ref() {
-            "fun" => Some(KeywordType::Function),
-            "let" => Some(KeywordType::Let),
-            "mut" => Some(KeywordType::LetMutable),
-            _ => None,
-        };
-    }
+    Colon,
+    Comma,
 }
 
 impl Symbol {
@@ -162,6 +164,8 @@ impl Symbol {
             '*' => Some(Symbol::Multiply),
             '%' => Some(Symbol::Percent),
             '/' => Some(Symbol::Divide),
+            ':' => Some(Symbol::Colon),
+            ',' => Some(Symbol::Comma),
             _ => None,
         };
     }
