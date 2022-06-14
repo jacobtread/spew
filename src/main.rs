@@ -1,7 +1,3 @@
-#![feature(iter_advance_by)]
-
-use std::{process::id, str::Chars, thread::__FastLocalKeyInner};
-
 mod types;
 
 struct Parser;
@@ -144,8 +140,6 @@ impl KeywordType {
     }
 }
 
-static DELIMITERS: [char; 6] = ['{', '}', '(', ')', '[', ']'];
-
 impl Symbol {
     fn from(value: char) -> Option<Symbol> {
         return match value {
@@ -189,7 +183,6 @@ enum Token {
     Ident(String),
     Block(Vec<Token>),
     Expression(Box<Token>, Box<Token>),
-    Delimiter(char),
     Symbol(Symbol),
     Literal(Literal),
 }
@@ -254,8 +247,6 @@ impl Parser {
         context.step_back();
         let ident = context
             .take_while(|char| char.is_alphabetic() || char.is_alphanumeric() || char == &'_');
-        let keyword = KeywordType::from(&ident);
-
         if let Some(keyword) = KeywordType::from(&ident) {
             context.push_token(Token::Keyword(keyword));
         } else if ident == "true" || ident == "false" {
@@ -321,13 +312,13 @@ impl Parser {
             } else if next_char.is_alphabetic() {
                 // Consume idents
                 context = Parser::consume_ident(context)?;
-            } else if DELIMITERS.contains(&next_char) {
-                // Consume delimiters
-                context.push_token(Token::Delimiter(next_char))
             } else if next_char == '"' {
                 context = Parser::consume_string_literal(context)?;
             } else if next_char.is_numeric() {
                 context = Parser::consume_number_literal(context)?;
+            } else if let Some(symbol) = Symbol::from(next_char) {
+                context.push_token(Token::Symbol(symbol))
+
             }
         }
         return Ok(tokens);
