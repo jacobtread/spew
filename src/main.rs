@@ -333,12 +333,13 @@ impl Parser {
     }
 
     fn consume_string_literal<'a>(
+        open_char: &char,
         context: &'a mut ParserContext<'a>,
     ) -> ParseResult<&'a mut ParserContext<'a>> {
         let mut str = String::new();
         let mut last_char: char = '"';
         while let Some(char) = context.next_char() {
-            if char == '"' && last_char != '\\' {
+            if &char == open_char && last_char != '\\' {
                 break;
             } else {
                 str.push(char);
@@ -365,8 +366,8 @@ impl Parser {
             } else if next_char.is_alphabetic() {
                 // Consume idents
                 context = Parser::consume_ident(context)?;
-            } else if next_char == '"' {
-                context = Parser::consume_string_literal(context)?;
+            } else if next_char == '"' || next_char == '\'' {
+                context = Parser::consume_string_literal(&next_char, context)?;
             } else if next_char.is_numeric() {
                 context = Parser::consume_number_literal(context)?;
             } else if let Some(symbol) = Symbol::from(next_char) {
