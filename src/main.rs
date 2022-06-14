@@ -64,6 +64,7 @@ impl ParserContext<'_> {
         }
         return out;
     }
+
     fn skip_while<P>(&mut self, mut predicate: P)
     where
         Self: Sized,
@@ -76,23 +77,6 @@ impl ParserContext<'_> {
                 break;
             }
         }
-    }
-
-    fn try_consume(&mut self, text: &str) -> bool {
-        let start_offset = self.offset;
-        let mut chars = text.chars();
-        self.offset -= 1;
-        let result = chars.all(|char_at| {
-            return if let Some(next_char) = self.next_char() {
-                next_char == char_at
-            } else {
-                false
-            };
-        });
-        if !result {
-            self.offset = start_offset
-        }
-        return result;
     }
 }
 
@@ -177,6 +161,8 @@ enum Literal {
     String(String),
     Number(String),
     Boolean(bool),
+    Null,
+    Undefined,
 }
 
 #[derive(Debug)]
@@ -256,6 +242,10 @@ impl Parser {
         } else if ident == "true" || ident == "false" {
             let is_true = ident == "true";
             context.push_token(Token::Literal(Literal::Boolean(is_true)))
+        } else if ident == "null" {
+            context.push_token(Token::Literal(Literal::Null))
+        } else if ident == "ndef" {
+            context.push_token(Token::Literal(Literal::Undefined))
         } else {
             context.push_token(Token::Ident(ident));
         }
@@ -322,7 +312,6 @@ impl Parser {
                 context = Parser::consume_number_literal(context)?;
             } else if let Some(symbol) = Symbol::from(next_char) {
                 context.push_token(Token::Symbol(symbol))
-
             }
         }
         return Ok(tokens);
