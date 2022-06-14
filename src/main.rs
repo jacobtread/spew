@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fmt::Debug;
 
-mod types;
+mod ast;
 
 struct Parser;
 
@@ -117,7 +117,7 @@ impl KeywordType {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-enum Modifier {
+pub enum Modifier {
     Public,
     Static,
     Inline,
