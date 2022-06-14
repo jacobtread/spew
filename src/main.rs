@@ -53,9 +53,9 @@ impl ParserContext<'_> {
     }
 
     fn take_while<P>(&mut self, mut predicate: P) -> String
-        where
-            Self: Sized,
-            P: FnMut(&char) -> bool,
+    where
+        Self: Sized,
+        P: FnMut(&char) -> bool,
     {
         let mut out = String::new();
         while let Some(char) = self.next_char() {
@@ -69,9 +69,9 @@ impl ParserContext<'_> {
         return out;
     }
     fn skip_while<P>(&mut self, mut predicate: P)
-        where
-            Self: Sized,
-            P: FnMut(&char) -> bool,
+    where
+        Self: Sized,
+        P: FnMut(&char) -> bool,
     {
         while let Some(char) = self.next_char() {
             let result = predicate(&char);
@@ -93,46 +93,59 @@ impl From<&String> for KeywordType {
     fn from(value: &String) -> Self {
         return match value.as_ref() {
             "fun" => KeywordType::Function,
-            _ => KeywordType::Unknown
+            _ => KeywordType::Unknown,
         };
     }
 }
 
 static DELIMITERS: [char; 6] = ['{', '}', '(', ')', '[', ']'];
 
-enum PunctuationType {
+#[derive(Debug)]
+#[allow(dead_code)]
+enum Symbol {
+    // {
+    OpenCurly,
+    // }
+    CloseCurly,
+    // (
+    OpenParen,
+    // )
+    CloseParen,
+    // [
+    OpenSquare,
+    // ]
+    CloseSquare,
+    // +
     Plus,
+    // -
     Minus,
-    Star,
-    Slash,
-    Percent,
-    Caret,
-    Not,
+    // <
+    Left,
+    // >
+    Right,
+    // _
+    Underscore,
+    // !
+    Exclamation,
+    // =
+    Equals,
+    // &
     And,
-    Or,
-    AndAnd,
-    OrOr,
-    Shl,
-    Shr,
-    PlusEq,
-    MinusEq,
-    StarEq,
-    SlashEq,
-    PercentEq,
-    CaretEq,
-    AndEq,
-    OrEq,
-    ShlEq,
-    ShrEq,
-    Eq,
-    EqEq,
-    Ne,
-    Gt,
-    Lt,
-    Ge,
-    Le,
-    RArrow,
-    FatArrow
+    // |
+    Pipe,
+    // .
+    Period,
+    // *
+    Multiply,
+    // %
+    Percent
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+enum Literal {
+    String(String),
+    Number(String),
 }
 
 #[derive(Debug)]
@@ -144,6 +157,8 @@ enum Token {
     Block(Vec<Token>),
     Expression(Box<Token>, Box<Token>),
     Delimiter(char),
+    Symbol(Symbol),
+    Literal,
 }
 
 #[derive(Debug)]
@@ -157,14 +172,17 @@ enum ParserError {
 type ParseResult<T> = Result<T, ParserError>;
 
 impl Parser {
-    fn consume_comment<'a>(context: &'a mut ParserContext<'a>) -> ParseResult<&'a mut ParserContext<'a>> {
+    fn consume_comment<'a>(
+        context: &'a mut ParserContext<'a>,
+    ) -> ParseResult<&'a mut ParserContext<'a>> {
         return if let Some(char) = context.next_char() {
-            if char == '/' { // Full line comment
-                let comment_text = context
-                    .take_while(|char| char != &'\n');
+            if char == '/' {
+                // Full line comment
+                let comment_text = context.take_while(|char| char != &'\n');
                 context.push_token(Token::Comment(comment_text));
                 Ok(context)
-            } else if char == '*' { // Multi-line comment
+            } else if char == '*' {
+                // Multi-line comment
                 let mut comment_text = String::new();
                 while let Some(first_char) = context.next_char() {
                     if first_char == '*' {
@@ -186,17 +204,21 @@ impl Parser {
                 Ok(context)
             } else {
                 println!("{} {}", context.line, context.line_offset);
-                Err(ParserError::UnexpectedToken(char, String::from("Expected '/' for line comment or '*' for multiline comment")))
+                Err(ParserError::UnexpectedToken(
+                    char,
+                    String::from("Expected '/' for line comment or '*' for multiline comment"),
+                ))
             }
         } else {
             Err(ParserError::Expected(String::from("/ for comment at")))
         };
     }
 
-    fn consume_ident<'a>(context: &'a mut ParserContext<'a>) -> ParseResult<&'a mut ParserContext<'a>> {
+    fn consume_ident<'a>(
+        context: &'a mut ParserContext<'a>,
+    ) -> ParseResult<&'a mut ParserContext<'a>> {
         context.step_back();
-        let ident = context
-            .take_while(|char| char.is_alphabetic() || char.is_alphanumeric());
+        let ident = context.take_while(|char| char.is_alphabetic() || char.is_alphanumeric());
         let keyword = KeywordType::from(&ident);
         match keyword {
             KeywordType::Unknown => context.push_token(Token::Ident(ident)),
@@ -212,11 +234,14 @@ impl Parser {
         let mut context = &mut ParserContext::new(&mut chars, &mut tokens);
 
         while let Some(next_char) = context.next_char() {
-            if next_char.is_whitespace() { // Consuming whitespace
+            if next_char.is_whitespace() {
+                // Consuming whitespace
                 context.skip_while(|char| char.is_whitespace());
-            } else if next_char == '/' { // Consume comments
+            } else if next_char == '/' {
+                // Consume comments
                 context = Parser::consume_comment(context)?;
-            } else if next_char.is_alphabetic() { // Consume idents
+            } else if next_char.is_alphabetic() {
+                // Consume idents
                 context = Parser::consume_ident(context)?;
             } else if DELIMITERS.contains(&next_char) {
                 context.push_token(Token::Delimiter(next_char))
@@ -229,9 +254,6 @@ impl Parser {
 const SOURCE: &str = include_str!("../example.spew");
 
 fn main() {
-    let tokens = Parser::parse(SOURCE)
-        .expect("Failed to parse");
-
-
+    let tokens = Parser::parse(SOURCE).expect("Failed to parse");
     println!("{:?}", tokens);
 }
