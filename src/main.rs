@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::Debug;
 
 mod types;
 
@@ -90,6 +92,8 @@ enum KeywordType {
     Function,
     Unknown,
     Static,
+    Struct,
+    Implementation,
     Modifier(Modifier),
 }
 
@@ -100,6 +104,8 @@ impl KeywordType {
             "fun" => Some(KeywordType::Function),
             "let" => Some(KeywordType::Let),
             "mut" => Some(KeywordType::LetMutable),
+            "impl" => Some(KeywordType::Implementation),
+            "struct" => Some(KeywordType::Struct),
             v => {
                 return if let Some(modifier) = Modifier::from(v) {
                     Some(KeywordType::Modifier(modifier))
@@ -132,59 +138,63 @@ impl Modifier {
     }
 }
 
-#[derive(Debug)]
-#[allow(dead_code)]
-enum Symbol {
-    OpenCurly,
-    CloseCurly,
-    OpenParen,
-    CloseParen,
-    OpenSquare,
-    CloseSquare,
-    Plus,
-    Minus,
-    Left,
-    Right,
-    Underscore,
-    Exclamation,
-    Equals,
-    And,
-    Pipe,
-    Period,
-    Multiply,
-    Percent,
-    Divide,
-    Colon,
-    Comma,
+macro_rules! symbols {
+    (
+      $($name:ident: $value:literal),* $(,)?
+    ) => {
+        enum Symbol {
+          $($name,)*
+        }
+
+        impl Symbol {
+          fn from(value: char) -> Option<Symbol> {
+            return match value {
+              $(
+                $value => Some(Symbol::$name),
+              )*
+              _ => None,
+            }
+          }
+        }
+
+        impl Debug for Symbol {
+          fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+              match self {
+                $(
+                  Symbol::$name => {
+                    write!(f, "{}",$value)?;
+                  },
+                )*
+              }
+              Ok(())
+          }
+        }
+    };
 }
 
-impl Symbol {
-    fn from(value: char) -> Option<Symbol> {
-        return match value {
-            '{' => Some(Symbol::OpenCurly),
-            '}' => Some(Symbol::CloseCurly),
-            '(' => Some(Symbol::OpenParen),
-            ')' => Some(Symbol::CloseParen),
-            '[' => Some(Symbol::OpenSquare),
-            ']' => Some(Symbol::CloseSquare),
-            '+' => Some(Symbol::Plus),
-            '-' => Some(Symbol::Minus),
-            '<' => Some(Symbol::Left),
-            '>' => Some(Symbol::Right),
-            '_' => Some(Symbol::Underscore),
-            '!' => Some(Symbol::Exclamation),
-            '=' => Some(Symbol::Equals),
-            '&' => Some(Symbol::And),
-            '|' => Some(Symbol::Pipe),
-            '.' => Some(Symbol::Period),
-            '*' => Some(Symbol::Multiply),
-            '%' => Some(Symbol::Percent),
-            '/' => Some(Symbol::Divide),
-            ':' => Some(Symbol::Colon),
-            ',' => Some(Symbol::Comma),
-            _ => None,
-        };
-    }
+symbols! {
+  OpenCurly: '{',
+  CloseCurly: '}',
+  OpenParen: '(',
+  CloseParen: ')',
+  OpenSquare: '[',
+  CloseSquare: '[',
+  Plus: '+',
+  Minus: '-',
+  Left: '<',
+  Right: '>',
+  Underscore: '_',
+  Exclamation: '!',
+  Equals: '=',
+  And: '&',
+  Pipe: '|',
+  Period: '.',
+  Multiply: '*',
+  Percent: '%',
+  Divide: '/',
+  Colon: ':',
+  Comma: ',',
+  Question: '?',
 }
 
 #[derive(Debug)]
@@ -197,16 +207,36 @@ enum Literal {
     Undefined,
 }
 
-#[derive(Debug)]
 #[allow(dead_code)]
 enum Token {
     Comment(String),
     Keyword(KeywordType),
     Ident(String),
-    Block(Vec<Token>),
-    Expression(Box<Token>, Box<Token>),
     Symbol(Symbol),
     Literal(Literal),
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Token::Comment(comment) => {
+                write!(f, "Comment({})", comment)?;
+            }
+            Token::Keyword(keyword) => {
+                write!(f, "Keyword({:?})", keyword)?;
+            }
+            Token::Ident(ident) => {
+                write!(f, "Ident({})", ident)?;
+            }
+            Token::Symbol(symbol) => {
+              write!(f, "Symbol({:?})", symbol)?;
+            }
+            Token::Literal(literal) => {
+              write!(f, "Literal({:?})", literal)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -351,5 +381,5 @@ const SOURCE: &str = include_str!("../example.spew");
 
 fn main() {
     let tokens = Parser::parse(SOURCE).expect("Failed to parse");
-    println!("{:?}", tokens);
+    println!("{:#?}", tokens);
 }

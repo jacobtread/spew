@@ -21,33 +21,13 @@ ndef
 
 trait 
 
-class Example(
-    let key: str,
-) {
+struct Test {
+  name: str
+  value: num
+}
 
-    init {
-
-    }
-
-    test: str
-
-    compile fun my_function(key: str, my_func: str) -> string {
-        
-    }
-
-    static fun static_fun(key: str) -> string? {
-        if key == "test" {
-            return "Wow thats right"
-        } else {
-            return null
-        }
-    }
-
-    fun <A, B> generic_fun(key: A, value: B) {
-        let variable = "Hello World"
-        let
-    }
-
+impl Test {
+  
 }
 
 # Type

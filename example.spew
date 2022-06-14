@@ -10,11 +10,34 @@
 
 const my_variable = test('a', 'b')
 
+
+struct Test {
+  name: str
+  value: num
+}
+
+
+trait Hello {
+
+  fun test() -> str
+
+}
+
+impl Hello for Test {
+
+  fun test() -> str
+
+}
+
+
+
+
 compile fun test(a: str, b: str) -> str {
   let mut this_is_a_string = "Test string yes yes"
   let this_is_a_broken_str = "Test string \" escaped "
   let boolean_test: bool = true
   let boolean_test_2 = false
+  return true;
 }
 
 
