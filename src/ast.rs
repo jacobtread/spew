@@ -1,9 +1,18 @@
-struct Variable {
-  name: String,
-  modifiers: Vec<Modifier>,
-  
+enum Operator {
+  Equals,
+
 }
 
 enum AST {
-  Variable()
+    Variable {
+        name: String,
+        modifiers: Vec<Modifier>,
+        value: Box<AST>,
+    },
+    Operation {
+        left: Box<AST>,
+        operator: Operator,
+        right: Box<AST>
+    }
+    
 }
