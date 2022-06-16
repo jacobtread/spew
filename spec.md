@@ -17,7 +17,9 @@ num
 obj
 bool
 null
+any
 ndef
+void
 
 trait 
 
@@ -29,6 +31,12 @@ struct Test {
 impl Test {
   
 }
+
+struct Other {
+  b: str
+}
+
+type MyType = Test & Other
 
 # Type
 
