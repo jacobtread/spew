@@ -1,7 +1,9 @@
+use std::ptr::eq;
 use std::vec;
 
-use crate::Modifier;
 use lazy_static::lazy_static;
+
+use crate::{Literal, Modifier};
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -39,12 +41,14 @@ struct Variable {
     constant: bool,
     name: String,
     modifiers: Vec<Modifier>,
+    type_of: DataType,
 }
 
 #[derive(Debug)]
 struct StructProperty {
     name: String,
     modifiers: Vec<Modifier>,
+    type_of: DataType,
 }
 
 #[derive(Debug)]
@@ -75,34 +79,57 @@ lazy_static! {
 #[derive(Debug, Clone)]
 pub struct DataType {
     pub name: String,
-    pub inherit: Vec<&'static DataType>,
+    pub inherit: Vec<DataType>,
+}
+
+impl PartialEq for DataType {
+    fn eq(&self, other: &Self) -> bool {
+        return if self.name == other.name {
+            true
+        } else {
+            if self.inherit
+                .iter()
+                .any(|value| value.name == other.name)
+                || other.inherit
+                .iter()
+                .any(|value| value.name == self.name) {
+                return true;
+            }
+            false
+        };
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        return !self.eq(other);
+    }
 }
 
 impl DataType {
-    fn new(name: &str, inherit: Vec<&'static DataType>) -> DataType {
+    fn new(name: &str, inherit: Vec<DataType>) -> DataType {
         return DataType {
             name: String::from(name),
-            inherit: inherit,
+            inherit,
         };
     }
 }
 
 #[derive(Debug)]
-pub struct FunctionArgument<'a> {
+pub struct FunctionArgument {
     pub name: String,
-    pub data_type: &'a DataType,
+    pub data_type: DataType,
 }
 
 #[derive(Debug)]
-pub struct Function<'a, 'r> {
+pub struct SpewFunction {
     pub name: String,
-    pub arguments: FunctionArgument<'a>,
-    pub return_type: &'r DataType,
+    pub modifiers: Vec<Modifier>,
+    pub arguments: FunctionArgument,
+    pub return_type: DataType,
 }
 
 #[derive(Debug)]
-pub struct Implementation<'a, 'r> {
-  pub functions: Vec<Function<'a, 'r>>,
+pub struct SpewImpl {
+    pub functions: Vec<SpewFunction>,
 }
 
 #[derive(Debug)]
@@ -113,6 +140,7 @@ enum AST {
         modifiers: Vec<Modifier>,
         value: Option<Box<AST>>,
     },
+    Literal(Literal),
     Operation(Box<Operation>),
     ConditionBlock {
         condition: Box<Vec<Operation>>,
@@ -120,4 +148,6 @@ enum AST {
     },
     Block(Box<Vec<AST>>),
     Struct(SpewStruct),
+    Impl(SpewImpl),
+    Function(SpewFunction),
 }

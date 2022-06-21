@@ -199,7 +199,7 @@ symbols! {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-enum Literal {
+pub enum Literal {
     String(String),
     Number(String),
     Boolean(bool),
