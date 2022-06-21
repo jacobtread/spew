@@ -3,7 +3,7 @@ use std::vec;
 
 use lazy_static::lazy_static;
 
-use crate::{Literal, Modifier};
+use crate::{Literal, Modifier, Token, TokenSet};
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -150,4 +150,33 @@ enum AST {
     Struct(SpewStruct),
     Impl(SpewImpl),
     Function(SpewFunction),
+}
+
+
+#[derive(Debug)]
+struct ASTSource {
+    values: Vec<AST>,
+}
+
+enum ParserState {
+    
+}
+
+impl ASTSource {
+    fn parse_ast(value: TokenSet) {
+        let mut token_set = value;
+        let ast: Vec<AST> = Vec::new();
+        while let Some(token) = token_set.next_token() {
+            match token {
+                Token::Comment(_) => {
+                    // Comments are ignored
+                }
+                Token::Keyword(keyword) => {}
+                Token::Ident(_) => {}
+                Token::Symbol(_) => {}
+                Token::Literal(_) => {}
+            }
+        }
+
+    }
 }

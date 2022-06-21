@@ -52,9 +52,9 @@ impl ParserContext<'_> {
     }
 
     fn take_while<P>(&mut self, mut predicate: P) -> String
-    where
-        Self: Sized,
-        P: FnMut(&char) -> bool,
+        where
+            Self: Sized,
+            P: FnMut(&char) -> bool,
     {
         let mut out = String::new();
         while let Some(char) = self.next_char() {
@@ -69,9 +69,9 @@ impl ParserContext<'_> {
     }
 
     fn skip_while<P>(&mut self, mut predicate: P)
-    where
-        Self: Sized,
-        P: FnMut(&char) -> bool,
+        where
+            Self: Sized,
+            P: FnMut(&char) -> bool,
     {
         while let Some(char) = self.next_char() {
             let result = predicate(&char);
@@ -109,7 +109,7 @@ impl KeywordType {
                     Some(KeywordType::Modifier(modifier))
                 } else {
                     None
-                }
+                };
             }
         };
     }
@@ -229,10 +229,10 @@ impl Debug for Token {
                 write!(f, "Ident({})", ident)?;
             }
             Token::Symbol(symbol) => {
-              write!(f, "Symbol({:?})", symbol)?;
+                write!(f, "Symbol({:?})", symbol)?;
             }
             Token::Literal(literal) => {
-              write!(f, "Literal({:?})", literal)?;
+                write!(f, "Literal({:?})", literal)?;
             }
         }
         Ok(())
@@ -249,6 +249,35 @@ enum ParserError {
 }
 
 type ParseResult<T> = Result<T, ParserError>;
+
+#[derive(Debug)]
+struct TokenSet {
+    cursor: usize,
+    tokens: Vec<Token>,
+}
+
+impl TokenSet {
+    fn new(tokens: Vec<Token>) -> TokenSet {
+        return TokenSet {
+            cursor: 0,
+            tokens,
+        };
+    }
+
+    pub fn next(&mut self, amount: usize) {
+        self.cursor += amount
+    }
+
+    pub fn back(&mut self, amount: usize) {
+        self.cursor -= amount
+    }
+
+    pub fn next_token(&mut self) -> Option<&Token> {
+        let value = self.tokens.get(self.cursor);
+        self.cursor += 1;
+        return value;
+    }
+}
 
 impl Parser {
     fn consume_comment<'a>(
@@ -350,7 +379,7 @@ impl Parser {
         Ok(context)
     }
 
-    fn parse(text: &str) -> ParseResult<Vec<Token>> {
+    fn parse_tokens(text: &str) -> ParseResult<TokenSet> {
         let mut tokens = Vec::new();
         let mut chars: Vec<char> = text.chars().collect();
 
@@ -374,13 +403,13 @@ impl Parser {
                 context.push_token(Token::Symbol(symbol))
             }
         }
-        return Ok(tokens);
+        return Ok(TokenSet::new(tokens));
     }
 }
 
 const SOURCE: &str = include_str!("../example.spew");
 
 fn main() {
-    let tokens = Parser::parse(SOURCE).expect("Failed to parse");
+    let tokens = Parser::parse_tokens(SOURCE).expect("Failed to parse");
     println!("{:#?}", tokens);
 }
