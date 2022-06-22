@@ -8,15 +8,13 @@
 
 */
 
-const my_variable = test('a', 'b')
-
 
 struct Test {
   name: str
   value: num
 }
 
-
+/*
 trait Hello {
 
   fun test() -> str
@@ -44,3 +42,5 @@ compile fun test(a: str, b: str) -> str {
 let test = fun (a, b) {
 
 }
+
+*/

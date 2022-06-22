@@ -1,5 +1,6 @@
 use std::fmt;
 use std::fmt::Debug;
+use crate::ast::ASTSource;
 
 mod ast;
 
@@ -85,14 +86,16 @@ impl ParserContext<'_> {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-enum KeywordType {
+pub enum KeywordType {
     Constant,
     Let,
     Function,
     Unknown,
     Static,
     Struct,
-    Implementation,
+    Trait,
+    Impl,
+    For,
     Modifier(Modifier),
 }
 
@@ -102,8 +105,10 @@ impl KeywordType {
             "const" => Some(KeywordType::Constant),
             "fun" => Some(KeywordType::Function),
             "let" => Some(KeywordType::Let),
-            "impl" => Some(KeywordType::Implementation),
+            "trait" => Some(KeywordType::Trait),
+            "impl" => Some(KeywordType::Impl),
             "struct" => Some(KeywordType::Struct),
+            "for" => Some(KeywordType::For),
             v => {
                 return if let Some(modifier) = Modifier::from(v) {
                     Some(KeywordType::Modifier(modifier))
@@ -142,7 +147,8 @@ macro_rules! symbols {
     (
       $($name:ident: $value:literal),* $(,)?
     ) => {
-        enum Symbol {
+        #[derive(PartialEq)]
+        pub enum Symbol {
           $($name,)*
         }
 
@@ -208,7 +214,7 @@ pub enum Literal {
 }
 
 #[allow(dead_code)]
-enum Token {
+pub enum Token {
     Comment(String),
     Keyword(KeywordType),
     Ident(String),
@@ -251,7 +257,7 @@ enum ParserError {
 type ParseResult<T> = Result<T, ParserError>;
 
 #[derive(Debug)]
-struct TokenSet {
+pub struct TokenSet {
     cursor: usize,
     tokens: Vec<Token>,
 }
@@ -273,9 +279,15 @@ impl TokenSet {
     }
 
     pub fn next_token(&mut self) -> Option<&Token> {
-        let value = self.tokens.get(self.cursor);
-        self.cursor += 1;
-        return value;
+        while let Some(token) = self.tokens.get(self.cursor) { // Check that the token is some
+            self.cursor += 1;
+            if let Token::Comment(token) = token { // Ignoring comment tokens
+                continue;
+            } else {
+                return Some(token);
+            }
+        }
+        return None;
     }
 }
 
@@ -412,4 +424,13 @@ const SOURCE: &str = include_str!("../example.spew");
 fn main() {
     let tokens = Parser::parse_tokens(SOURCE).expect("Failed to parse");
     println!("{:#?}", tokens);
+    let values = ASTSource::parse_ast(tokens);
+    match values {
+        Ok(ast) => {
+            println!("{:#?}", ast)
+        }
+        Err(err) => {
+            eprintln!("{:?}",err)
+        }
+    }
 }
