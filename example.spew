@@ -10,7 +10,7 @@
 
 
 struct Test {
-  name: str
+  name: str?
   value: num
 }
 

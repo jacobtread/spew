@@ -44,7 +44,6 @@ struct Variable {
 #[derive(Debug)]
 struct StructProperty {
     name: String,
-    modifiers: Vec<Modifier>,
     type_of: DataType,
 }
 
@@ -54,53 +53,10 @@ struct SpewStruct {
     properties: Vec<StructProperty>,
 }
 
-lazy_static! {
-    // pub static ref VOID_TYPE: DataType = DataType::new("void", Vec::with_capacity(0));
-    // pub static ref ANY_TYPE: DataType = DataType::new("any", Vec::with_capacity(0));
-    // pub static ref OBJECT_TYPE: DataType = DataType::new("obj", vec![ANY_TYPE]);
-    // pub static ref STRING_TYPE: DataType = DataType::new("str", vec![OBJECT_TYPE]);
-    // pub static ref NUMBER_TYPE: DataType = DataType::new("num", vec![OBJECT_TYPE]);
-    // pub static ref BOOLEAN_TYPE: DataType = DataType::new("bool", vec![OBJECT_TYPE]);
-    // pub static ref NULL_TYPE: DataType = DataType::new("null", vec![OBJECT_TYPE]);
-    // pub static ref NOT_DEFINED: DataType = DataType::new("ndef", vec![OBJECT_TYPE]);
-}
-
-
 #[derive(Debug, Clone)]
 pub struct DataType {
-    pub name: String,
-    pub inherit: Vec<DataType>,
-}
-
-impl PartialEq for DataType {
-    fn eq(&self, other: &Self) -> bool {
-        return if self.name == other.name {
-            true
-        } else {
-            if self.inherit
-                .iter()
-                .any(|value| value.name == other.name)
-                || other.inherit
-                .iter()
-                .any(|value| value.name == self.name) {
-                return true;
-            }
-            false
-        };
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        return !self.eq(other);
-    }
-}
-
-impl DataType {
-    fn new(name: &str, inherit: Vec<DataType>) -> DataType {
-        return DataType {
-            name: String::from(name),
-            inherit,
-        };
-    }
+    name: String,
+    nullable: bool,
 }
 
 #[derive(Debug)]
@@ -155,32 +111,16 @@ pub struct ASTState {
 }
 
 impl ASTState {
-    fn next_token(&mut self) -> Option<&Token> {
+    fn next_token(&mut self) -> Option<Token> {
         return self.token_set.next_token();
+    }
+
+    fn back_token(&mut self) {
+        self.token_set.back(1)
     }
 
     fn push_ast(&mut self, value: AST) {
         self.result.push(value);
-    }
-
-    fn expect_symbol(&mut self, symbol: Symbol) -> ASTResult<()> {
-        if let Some(token) = self.next_token() {
-            if let Token::Symbol(other_symbol) = token {
-                match symbol {
-                    Symbol::Colon => {}
-                    _ => {}
-                }
-                if &symbol == other_symbol {
-                    Ok(())
-                } else {
-                    Err(ASTError::UnexpectedToken)
-                }
-            } else {
-                Err(ASTError::UnexpectedToken)
-            }
-        } else {
-            Err(ASTError::Incomplete)
-        }
     }
 }
 
@@ -190,7 +130,7 @@ macro_rules! expect_ident {
             if let Token::Ident(ident) = token {
                 ident
             } else {
-                return Err(ASTError::UnexpectedToken);
+                return Err(ASTError::UnexpectedToken(Some(token)));
             }
         } else {
             return Err(ASTError::Incomplete);
@@ -200,13 +140,13 @@ macro_rules! expect_ident {
 macro_rules! expect_symbol {
     ($state:ident, $symbol:ident) => {
          if let Some(token) = $state.next_token() {
-            if let Token::Symbol(symbol) = token {
+            if let Token::Symbol(ref symbol) = token {
                 match symbol {
                     Symbol::$symbol => {},
-                    _ => return Err(ASTError::UnexpectedToken)
+                    _ => return Err(ASTError::UnexpectedToken(Some(token.clone())))
                 }
             } else {
-               return Err(ASTError::UnexpectedToken)
+               return Err(ASTError::UnexpectedToken(Some(token)))
             }
         } else {
             return Err(ASTError::Incomplete)
@@ -216,49 +156,68 @@ macro_rules! expect_symbol {
 
 #[derive(Debug)]
 pub enum ASTError {
-    UnexpectedToken,
+    UnexpectedToken(Option<Token>),
     Incomplete,
 }
 
 type ASTResult<T> = Result<T, ASTError>;
 
 impl ASTSource {
-    fn parse_struct(state: &mut ASTState) -> ASTResult<&mut ASTState> {
-        let name = expect_ident!(state);
-        expect_symbol!(state, OpenCurly);
-
-        let mut content = false;
-        let mut properties: Vec<StructProperty> = Vec::new();
-
-        loop {
-            let next_token = state.next_token();
-            if let Some(next_token) = next_token {
-                match next_token {
-                    Token::Ident(name) => {
-                        expect_symbol!(state, Colon);
-                        let type_name = expect_ident!(state);
-                        println!("Property {} {}", name, type_name)
-                    }
-                    Token::Symbol(symbol) => {
-
-                        if let Symbol::CloseCurly = symbol {
-                            break;
-                        } else {
-                            return Err(ASTError::UnexpectedToken);
-                        }
-                    }
-                    _ => return Err(ASTError::UnexpectedToken)
+    fn parse_datatype(state: &mut ASTState) -> ASTResult<DataType> {
+        let base_name = expect_ident!(state);
+        let mut nullable = false;
+        if let Some(next_token) = state.next_token() {
+            if let Token::Symbol(symbol) = next_token {
+                if let Symbol::Question = symbol {
+                    nullable = true
                 }
-            } else {
-                break;
             }
         }
+        if !nullable {
+            state.back_token();
+        }
 
-        expect_symbol!(state, CloseCurly);
+        Ok(DataType {
+            name: base_name,
+            nullable,
+        })
+    }
 
-        println!("Struct named {}", name);
+    fn parse_struct(state: &mut ASTState) -> ASTResult<()> {
+        let name = expect_ident!(state);
+        expect_symbol!(state, OpenCurly);
+        let mut closed = false;
+        let mut properties: Vec<StructProperty> = Vec::new();
+        while let Some(next_token) = state.next_token() {
+            match next_token {
+                Token::Ident(name) => {
+                    expect_symbol!(state, Colon);
+                    let type_of = Self::parse_datatype(state)?;
+                    properties.push(StructProperty {
+                        name,
+                        type_of,
+                    });
+                }
+                Token::Symbol(ref symbol) => {
+                    if let Symbol::CloseCurly = symbol {
+                        closed = true;
+                        break;
+                    } else {
+                        return Err(ASTError::UnexpectedToken(Some(next_token.clone())));
+                    }
+                }
+                token => return Err(ASTError::UnexpectedToken(Some(token)))
+            }
+        }
+        if !closed {
+            return Err(ASTError::UnexpectedToken(None));
+        }
 
-        Ok(state)
+        state.push_ast(AST::Struct(SpewStruct {
+            name,
+            properties,
+        }));
+        Ok(())
     }
 
     pub fn parse_ast(value: TokenSet) -> ASTResult<Vec<AST>> {
@@ -281,7 +240,7 @@ impl ASTSource {
                         KeywordType::Unknown => {}
                         KeywordType::Static => {}
                         KeywordType::Struct => {
-                            state = Self::parse_struct(state)?;
+                            Self::parse_struct(state)?;
                         }
                         KeywordType::Trait => {}
                         KeywordType::Impl => {}

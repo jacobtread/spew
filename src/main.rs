@@ -84,7 +84,7 @@ impl ParserContext<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum KeywordType {
     Constant,
@@ -120,7 +120,7 @@ impl KeywordType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum Modifier {
     Public,
@@ -147,7 +147,7 @@ macro_rules! symbols {
     (
       $($name:ident: $value:literal),* $(,)?
     ) => {
-        #[derive(PartialEq)]
+        #[derive(PartialEq, Clone)]
         pub enum Symbol {
           $($name,)*
         }
@@ -203,7 +203,7 @@ symbols! {
   Question: '?',
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum Literal {
     String(String),
@@ -213,6 +213,7 @@ pub enum Literal {
     Undefined,
 }
 
+#[derive(Clone)]
 #[allow(dead_code)]
 pub enum Token {
     Comment(String),
@@ -278,13 +279,13 @@ impl TokenSet {
         self.cursor -= amount
     }
 
-    pub fn next_token(&mut self) -> Option<&Token> {
+    pub fn next_token(&mut self) -> Option<Token> {
         while let Some(token) = self.tokens.get(self.cursor) { // Check that the token is some
             self.cursor += 1;
             if let Token::Comment(token) = token { // Ignoring comment tokens
                 continue;
             } else {
-                return Some(token);
+                return Some(token.clone());
             }
         }
         return None;
