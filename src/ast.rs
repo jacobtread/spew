@@ -65,12 +65,18 @@ pub struct FunctionArgument {
     pub data_type: DataType,
 }
 
-#[derive(Debug)]
-pub struct SpewFunction {
+#[derive(Debug, Clone)]
+pub struct FunctionStub {
     pub name: String,
     pub modifiers: Vec<Modifier>,
-    pub arguments: FunctionArgument,
-    pub return_type: DataType,
+    pub arguments: Vec<FunctionArgument>,
+    pub return_type: Option<DataType>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SpewFunction {
+    pub stub: FunctionStub,
+    pub body: Vec<AST>,
 }
 
 #[derive(Debug)]
@@ -153,6 +159,27 @@ macro_rules! expect_symbol {
         }
     };
 }
+macro_rules! is_symbol_next {
+    ($state:ident, $symbol:ident) => {
+         if let Some(token) = $state.next_token() {
+            if let Token::Symbol(ref symbol) = token {
+                match symbol {
+                    Symbol::$symbol => true,
+                    _ => {
+                        $state.back_token();
+                        false
+                    }
+                }
+            } else {
+                $state.back_token();
+                false
+            }
+        } else {
+            $state.back_token();
+            false
+        }
+    };
+}
 
 #[derive(Debug)]
 pub enum ASTError {
@@ -217,6 +244,55 @@ impl ASTSource {
             name,
             properties,
         }));
+        Ok(())
+    }
+
+    fn parse_function_stub(state: &mut ASTState, modifiers: Vec<Modifier>) -> ASTResult<FunctionStub> {
+        let name = expect_ident!(state);
+        expect_symbol!(state, OpenParen);
+        let mut closed = false;
+        let mut arguments: Vec<FunctionArgument> = Vec::new();
+        if let Some(next_token) = state.next_token() {
+            match next_token {
+                Token::Ident(argument_name) => {
+                    expect_symbol!(state, Colon);
+                    let data_type = Self::parse_datatype(state)?;
+                    arguments.push(FunctionArgument {
+                        name: argument_name,
+                        data_type,
+                    })
+                }
+                Token::Symbol(symbol) => {
+                    if let Symbol::CloseParen = symbol {
+                        closed = true
+                    }
+                }
+                token => return Err(ASTError::UnexpectedToken(Some(token)))
+            }
+        }
+
+        let return_type =
+            if is_symbol_next!(state, Minus) {
+                expect_symbol!(state, Right); // Parsing for the return type arrow
+                Some(Self::parse_datatype(state)?)
+            } else {
+                None
+            };
+
+
+        Ok(FunctionStub {
+            name,
+            modifiers,
+            arguments,
+            return_type,
+        })
+    }
+
+    fn parse_trait(state: &mut ASTState) -> ASTResult<()> {
+        let name = expect_ident!(state);
+        expect_symbol!(state, OpenCurly);
+
+
         Ok(())
     }
 

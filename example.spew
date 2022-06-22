@@ -14,13 +14,13 @@ struct Test {
   value: num
 }
 
-/*
+
 trait Hello {
 
   fun test() -> str
 
 }
-
+/*
 impl Hello for Test {
 
   fun test() -> str

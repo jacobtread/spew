@@ -120,7 +120,7 @@ impl KeywordType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clonef)]
 #[allow(dead_code)]
 pub enum Modifier {
     Public,
