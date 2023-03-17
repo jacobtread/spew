@@ -120,7 +120,7 @@ impl KeywordType {
     }
 }
 
-#[derive(Debug, Clonef)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum Modifier {
     Public,
@@ -246,7 +246,7 @@ impl Debug for Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 enum ParserError {
     UnexpectedToken(char, String),
@@ -257,7 +257,7 @@ enum ParserError {
 
 type ParseResult<T> = Result<T, ParserError>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TokenSet {
     cursor: usize,
     tokens: Vec<Token>,

@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 
 use crate::{KeywordType, Literal, Modifier, Symbol, Token, TokenSet};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 enum Operator {
     Equals,
@@ -17,7 +17,7 @@ enum Operator {
     OrOr,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 struct Operation {
     left: AST,
@@ -25,7 +25,7 @@ struct Operation {
     right: Option<AST>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 enum ConditionType {
     If,
@@ -33,7 +33,7 @@ enum ConditionType {
     Else,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Variable {
     constant: bool,
     name: String,
@@ -41,13 +41,13 @@ struct Variable {
     type_of: DataType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct StructProperty {
     name: String,
     type_of: DataType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct SpewStruct {
     name: String,
     properties: Vec<StructProperty>,
@@ -59,7 +59,7 @@ pub struct DataType {
     nullable: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionArgument {
     pub name: String,
     pub data_type: DataType,
@@ -79,12 +79,12 @@ pub struct SpewFunction {
     pub body: Vec<AST>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SpewImpl {
     pub functions: Vec<SpewFunction>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum AST {
     Variable {
@@ -105,12 +105,12 @@ pub enum AST {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ASTSource {
     values: Vec<AST>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ASTState {
     result: Vec<AST>,
     token_set: TokenSet,
@@ -181,7 +181,7 @@ macro_rules! is_symbol_next {
     };
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ASTError {
     UnexpectedToken(Option<Token>),
     Incomplete,
